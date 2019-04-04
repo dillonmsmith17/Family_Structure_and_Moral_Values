@@ -1,0 +1,793 @@
+---
+title: "Economics 1425 Research Proposal"
+author: "Dillon Smith"
+date: "3/14/2019"
+output: 
+  pdf_document:
+    fig_caption: TRUE
+bibliography: bibliography.bib
+---
+
+```{r setup, include=FALSE}
+# load necessary libraries
+library(knitr)
+library(haven)
+library(janitor)
+library(scales)
+library(lubridate)
+library(kableExtra)
+library(Amelia)
+library(zeligverse)
+library(stargazer)
+library(plotly)
+library(usmap)
+library(extrafont)
+library(tidyverse)
+
+# set up document settings
+opts_chunk$set(echo = FALSE,
+               message = FALSE,
+               error = FALSE,
+               warning = FALSE)
+```
+
+
+
+```{r read_in_data, cache=TRUE}
+# read in moral values data from Ben Enke --> do not need to clean, recieved tidied
+mv_data <- read_dta("data/Moral-Values/Moral-Values-County.dta")
+
+# read in all outcomes data from Raj Chetty --> need to organize to be able to perform data analysis
+ao_data <- read_dta("data/All-Outcomes/All-Outcomes-County.dta") %>% 
+  select(state, county, cz, czname,
+         has_dad_white_female_p1, has_dad_white_female_p50, has_dad_white_female_p100, 
+         has_dad_white_male_p1, has_dad_white_male_p50, has_dad_white_male_p100,
+         has_dad_white_pooled_p50,
+         has_dad_black_female_p1, has_dad_black_female_p50, has_dad_black_female_p100, 
+         has_dad_black_male_p1, has_dad_black_male_p50, has_dad_black_male_p100, 
+         has_dad_black_pooled_p50,
+         has_dad_asian_female_p1, has_dad_asian_female_p50, has_dad_asian_female_p100, 
+         has_dad_asian_male_p1, has_dad_asian_male_p50, has_dad_asian_male_p100,
+         has_dad_asian_pooled_p50,
+         has_dad_hisp_female_p1, has_dad_hisp_female_p50, has_dad_hisp_female_p100, 
+         has_dad_hisp_male_p1, has_dad_hisp_male_p50, has_dad_hisp_male_p100,
+         has_dad_hisp_pooled_p50,
+         has_dad_natam_female_p1, has_dad_natam_female_p50, has_dad_natam_female_p100, 
+         has_dad_natam_male_p1, has_dad_natam_male_p50, has_dad_natam_male_p100, 
+         has_dad_natam_pooled_p50,
+         has_mom_white_female_p1, has_mom_white_female_p50, has_mom_white_female_p100, 
+         has_mom_white_male_p1, has_mom_white_male_p50, has_mom_white_male_p100,
+         has_mom_white_pooled_p50,
+         has_mom_black_female_p1, has_mom_black_female_p50, has_mom_black_female_p100, 
+         has_mom_black_male_p1, has_mom_black_male_p50, has_mom_black_male_p100, 
+         has_mom_black_pooled_p50,
+         has_mom_asian_female_p1, has_mom_asian_female_p50, has_mom_asian_female_p100, 
+         has_mom_asian_male_p1, has_mom_asian_male_p50, has_mom_asian_male_p100,
+         has_mom_asian_pooled_p50,
+         has_mom_hisp_female_p1, has_mom_hisp_female_p50, has_mom_hisp_female_p100, 
+         has_mom_hisp_male_p1, has_mom_hisp_male_p50, has_mom_hisp_male_p100,
+         has_mom_hisp_pooled_p50,
+         has_mom_natam_female_p1, has_mom_natam_female_p50, has_mom_natam_female_p100, 
+         has_mom_natam_male_p1, has_mom_natam_male_p50, has_mom_natam_male_p100, 
+         has_mom_natam_pooled_p50,
+         jail_white_female_p1, jail_white_female_p50, jail_white_female_p100, 
+         jail_white_male_p1, jail_white_male_p50, jail_white_male_p100,
+         jail_white_pooled_p50,
+         jail_black_female_p1, jail_black_female_p50, jail_black_female_p100, 
+         jail_black_male_p1, jail_black_male_p50, jail_black_male_p100, 
+         jail_black_pooled_p50,
+         jail_asian_female_p1, jail_asian_female_p50, jail_asian_female_p100, 
+         jail_asian_male_p1, jail_asian_male_p50, jail_asian_male_p100,
+         jail_asian_pooled_p50,
+         jail_hisp_female_p1, jail_hisp_female_p50, jail_hisp_female_p100, 
+         jail_hisp_male_p1, jail_hisp_male_p50, jail_hisp_male_p100,
+         jail_hisp_pooled_p50,
+         jail_natam_female_p1, jail_natam_female_p50, jail_natam_female_p100, 
+         jail_natam_male_p1, jail_natam_male_p50, jail_natam_male_p100, 
+         jail_natam_pooled_p50,
+         teenbrth_white_female_p1, teenbrth_white_female_p50, teenbrth_white_female_p100,
+         teenbrth_black_female_p1, teenbrth_black_female_p50, teenbrth_black_female_p100, 
+         teenbrth_asian_female_p1, teenbrth_asian_female_p50, teenbrth_asian_female_p100,
+         teenbrth_hisp_female_p1, teenbrth_hisp_female_p50, teenbrth_hisp_female_p100,
+         teenbrth_natam_female_p1, teenbrth_natam_female_p50, teenbrth_natam_female_p100, 
+         two_par_white_female_p1, two_par_white_female_p50, two_par_white_female_p100, 
+         two_par_white_male_p1, two_par_white_male_p50, two_par_white_male_p100,
+         two_par_white_pooled_p50,
+         two_par_black_female_p1, two_par_black_female_p50, two_par_black_female_p100, 
+         two_par_black_male_p1, two_par_black_male_p50, two_par_black_male_p100, 
+         two_par_black_pooled_p50,
+         two_par_asian_female_p1, two_par_asian_female_p50, two_par_asian_female_p100, 
+         two_par_asian_male_p1, two_par_asian_male_p50, two_par_asian_male_p100,
+         two_par_asian_pooled_p50,
+         two_par_hisp_female_p1, two_par_hisp_female_p50, two_par_hisp_female_p100, 
+         two_par_hisp_male_p1, two_par_hisp_male_p50, two_par_hisp_male_p100,
+         two_par_hisp_pooled_p50,
+         two_par_natam_female_p1, two_par_natam_female_p50, two_par_natam_female_p100, 
+         two_par_natam_male_p1, two_par_natam_male_p50, two_par_natam_male_p100, 
+         two_par_natam_pooled_p50,
+         kfr_white_female_p1, kfr_white_female_p50, kfr_white_female_p100, 
+         kfr_white_male_p1, kfr_white_male_p50, kfr_white_male_p100,
+         kfr_white_pooled_p50,
+         kfr_black_female_p1, kfr_black_female_p50, kfr_black_female_p100, 
+         kfr_black_male_p1, kfr_black_male_p50, kfr_black_male_p100, 
+         kfr_black_pooled_p50,
+         kfr_asian_female_p1, kfr_asian_female_p50, kfr_asian_female_p100, 
+         kfr_asian_male_p1, kfr_asian_male_p50, kfr_asian_male_p100,
+         kfr_asian_pooled_p50,
+         kfr_hisp_female_p1, kfr_hisp_female_p50, kfr_hisp_female_p100, 
+         kfr_hisp_male_p1, kfr_hisp_male_p50, kfr_hisp_male_p100,
+         kfr_hisp_pooled_p50,
+         kfr_natam_female_p1, kfr_natam_female_p50, kfr_natam_female_p100, 
+         kfr_natam_male_p1, kfr_natam_male_p50, kfr_natam_male_p100, 
+         kfr_natam_pooled_p50,
+         kir_white_female_p1, kir_white_female_p50, kir_white_female_p100, 
+         kir_white_male_p1, kir_white_male_p50, kir_white_male_p100,
+         kir_white_pooled_p50,
+         kir_black_female_p1, kir_black_female_p50, kir_black_female_p100, 
+         kir_black_male_p1, kir_black_male_p50, kir_black_male_p100, 
+         kir_black_pooled_p50,
+         kir_asian_female_p1, kir_asian_female_p50, kir_asian_female_p100, 
+         kir_asian_male_p1, kir_asian_male_p50, kir_asian_male_p100,
+         kir_asian_pooled_p50,
+         kir_hisp_female_p1, kir_hisp_female_p50, kir_hisp_female_p100, 
+         kir_hisp_male_p1, kir_hisp_male_p50, kir_hisp_male_p100,
+         kir_hisp_pooled_p50,
+         kir_natam_female_p1, kir_natam_female_p50, kir_natam_female_p100, 
+         kir_natam_male_p1, kir_natam_male_p50, kir_natam_male_p100, 
+         kir_natam_pooled_p50) %>%
+  mutate(county = str_pad(county, 3, pad = "0")) %>% 
+  mutate(county = parse_number(paste(state, county, sep = "")))
+
+covariates_data <- read_stata("Data/Covariates/Covariates-County.dta") %>%
+  mutate(county = str_pad(county, 3, pad = "0")) %>% 
+  mutate(county = parse_number(paste(state, county, sep = ""))) 
+
+state_dictionary <- mv_data %>% 
+  select(state, county)
+```
+
+```{r join_data}
+# create joined data with moral values and outcomes data
+raw_data <- left_join(mv_data, ao_data, by = "county") %>% 
+  select(-state.y, -cz.y) %>% 
+  rename(state = state.x,
+         cz = cz.x)
+```
+
+
+
+```{r data_by_outcome}
+# create data for individual regressions
+has_dad_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_dad_white_female_p1, has_dad_white_female_p50, has_dad_white_female_p100, 
+         has_dad_white_male_p1, has_dad_white_male_p50, has_dad_white_male_p100,
+         has_dad_white_pooled_p50,
+         has_dad_black_female_p1, has_dad_black_female_p50, has_dad_black_female_p100, 
+         has_dad_black_male_p1, has_dad_black_male_p50, has_dad_black_male_p100, 
+         has_dad_black_pooled_p50,
+         has_dad_asian_female_p1, has_dad_asian_female_p50, has_dad_asian_female_p100, 
+         has_dad_asian_male_p1, has_dad_asian_male_p50, has_dad_asian_male_p100,
+         has_dad_asian_pooled_p50,
+         has_dad_hisp_female_p1, has_dad_hisp_female_p50, has_dad_hisp_female_p100, 
+         has_dad_hisp_male_p1, has_dad_hisp_male_p50, has_dad_hisp_male_p100,
+         has_dad_hisp_pooled_p50,
+         has_dad_natam_female_p1, has_dad_natam_female_p50, has_dad_natam_female_p100, 
+         has_dad_natam_male_p1, has_dad_natam_male_p50, has_dad_natam_male_p100, 
+         has_dad_natam_pooled_p50)
+
+has_mom_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_mom_white_female_p1, has_mom_white_female_p50, has_mom_white_female_p100, 
+         has_mom_white_male_p1, has_mom_white_male_p50, has_mom_white_male_p100,
+         has_mom_white_pooled_p50,
+         has_mom_black_female_p1, has_mom_black_female_p50, has_mom_black_female_p100, 
+         has_mom_black_male_p1, has_mom_black_male_p50, has_mom_black_male_p100, 
+         has_mom_black_pooled_p50,
+         has_mom_asian_female_p1, has_mom_asian_female_p50, has_mom_asian_female_p100, 
+         has_mom_asian_male_p1, has_mom_asian_male_p50, has_mom_asian_male_p100,
+         has_mom_asian_pooled_p50,
+         has_mom_hisp_female_p1, has_mom_hisp_female_p50, has_mom_hisp_female_p100, 
+         has_mom_hisp_male_p1, has_mom_hisp_male_p50, has_mom_hisp_male_p100,
+         has_mom_hisp_pooled_p50,
+         has_mom_natam_female_p1, has_mom_natam_female_p50, has_mom_natam_female_p100, 
+         has_mom_natam_male_p1, has_mom_natam_male_p50, has_mom_natam_male_p100, 
+         has_mom_natam_pooled_p50)
+
+jail_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         jail_white_female_p1, jail_white_female_p50, jail_white_female_p100, 
+         jail_white_male_p1, jail_white_male_p50, jail_white_male_p100,
+         jail_white_pooled_p50,
+         jail_black_female_p1, jail_black_female_p50, jail_black_female_p100, 
+         jail_black_male_p1, jail_black_male_p50, jail_black_male_p100, 
+         jail_black_pooled_p50,
+         jail_asian_female_p1, jail_asian_female_p50, jail_asian_female_p100, 
+         jail_asian_male_p1, jail_asian_male_p50, jail_asian_male_p100,
+         jail_asian_pooled_p50,
+         jail_hisp_female_p1, jail_hisp_female_p50, jail_hisp_female_p100, 
+         jail_hisp_male_p1, jail_hisp_male_p50, jail_hisp_male_p100,
+         jail_hisp_pooled_p50,
+         jail_natam_female_p1, jail_natam_female_p50, jail_natam_female_p100, 
+         jail_natam_male_p1, jail_natam_male_p50, jail_natam_male_p100, 
+         jail_natam_pooled_p50)
+
+teenbrth_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         teenbrth_white_female_p1, teenbrth_white_female_p50, teenbrth_white_female_p100,
+         teenbrth_black_female_p1, teenbrth_black_female_p50, teenbrth_black_female_p100, 
+         teenbrth_asian_female_p1, teenbrth_asian_female_p50, teenbrth_asian_female_p100,
+         teenbrth_hisp_female_p1, teenbrth_hisp_female_p50, teenbrth_hisp_female_p100,
+         teenbrth_natam_female_p1, teenbrth_natam_female_p50, teenbrth_natam_female_p100)
+
+two_par_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         two_par_white_female_p1, two_par_white_female_p50, two_par_white_female_p100, 
+         two_par_white_male_p1, two_par_white_male_p50, two_par_white_male_p100,
+         two_par_white_pooled_p50,
+         two_par_black_female_p1, two_par_black_female_p50, two_par_black_female_p100, 
+         two_par_black_male_p1, two_par_black_male_p50, two_par_black_male_p100, 
+         two_par_black_pooled_p50,
+         two_par_asian_female_p1, two_par_asian_female_p50, two_par_asian_female_p100, 
+         two_par_asian_male_p1, two_par_asian_male_p50, two_par_asian_male_p100,
+         two_par_asian_pooled_p50,
+         two_par_hisp_female_p1, two_par_hisp_female_p50, two_par_hisp_female_p100, 
+         two_par_hisp_male_p1, two_par_hisp_male_p50, two_par_hisp_male_p100,
+         two_par_hisp_pooled_p50,
+         two_par_natam_female_p1, two_par_natam_female_p50, two_par_natam_female_p100, 
+         two_par_natam_male_p1, two_par_natam_male_p50, two_par_natam_male_p100, 
+         two_par_natam_pooled_p50)
+
+kfr_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         kfr_white_female_p1, kfr_white_female_p50, kfr_white_female_p100, 
+         kfr_white_male_p1, kfr_white_male_p50, kfr_white_male_p100,
+         kfr_white_pooled_p50,
+         kfr_black_female_p1, kfr_black_female_p50, kfr_black_female_p100, 
+         kfr_black_male_p1, kfr_black_male_p50, kfr_black_male_p100, 
+         kfr_black_pooled_p50,
+         kfr_asian_female_p1, kfr_asian_female_p50, kfr_asian_female_p100, 
+         kfr_asian_male_p1, kfr_asian_male_p50, kfr_asian_male_p100,
+         kfr_asian_pooled_p50,
+         kfr_hisp_female_p1, kfr_hisp_female_p50, kfr_hisp_female_p100, 
+         kfr_hisp_male_p1, kfr_hisp_male_p50, kfr_hisp_male_p100,
+         kfr_hisp_pooled_p50,
+         kfr_natam_female_p1, kfr_natam_female_p50, kfr_natam_female_p100, 
+         kfr_natam_male_p1, kfr_natam_male_p50, kfr_natam_male_p100, 
+         kfr_natam_pooled_p50)
+
+kir_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         kir_white_female_p1, kir_white_female_p50, kir_white_female_p100, 
+         kir_white_male_p1, kir_white_male_p50, kir_white_male_p100,
+         kir_white_pooled_p50,
+         kir_black_female_p1, kir_black_female_p50, kir_black_female_p100, 
+         kir_black_male_p1, kir_black_male_p50, kir_black_male_p100, 
+         kir_black_pooled_p50,
+         kir_asian_female_p1, kir_asian_female_p50, kir_asian_female_p100, 
+         kir_asian_male_p1, kir_asian_male_p50, kir_asian_male_p100,
+         kir_asian_pooled_p50,
+         kir_hisp_female_p1, kir_hisp_female_p50, kir_hisp_female_p100, 
+         kir_hisp_male_p1, kir_hisp_male_p50, kir_hisp_male_p100,
+         kir_hisp_pooled_p50,
+         kir_natam_female_p1, kir_natam_female_p50, kir_natam_female_p100, 
+         kir_natam_male_p1, kir_natam_male_p50, kir_natam_male_p100, 
+         kir_natam_pooled_p50)
+
+```
+
+```{r data_by_race}
+white_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_dad_white_female_p50, has_dad_white_male_p50, has_dad_white_pooled_p50,
+         has_mom_white_female_p50, has_mom_white_male_p50, has_mom_white_pooled_p50,
+         jail_white_female_p50, jail_white_male_p50, jail_white_pooled_p50,
+         teenbrth_white_female_p50, 
+         two_par_white_female_p50, two_par_white_male_p50, two_par_white_pooled_p50,
+         kfr_white_female_p50, kfr_white_male_p50, kfr_white_pooled_p50,
+         kir_white_female_p50, kir_white_male_p50, kir_white_pooled_p50) %>% 
+  rename(has_dad_pooled_p50 = has_dad_white_pooled_p50,
+         has_mom_pooled_p50 = has_mom_white_pooled_p50,
+         jail_pooled_p50 = jail_white_pooled_p50,
+         teenbrth_female_p50 = teenbrth_white_female_p50,
+         two_par_pooled_p50 = two_par_white_pooled_p50,
+         kfr_pooled_p50 = kfr_white_pooled_p50,
+         kir_pooled_p50 = kir_white_pooled_p50)
+  
+black_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_dad_black_female_p50, has_dad_black_male_p50, has_dad_black_pooled_p50,
+         has_mom_black_female_p50, has_mom_black_male_p50, has_mom_black_pooled_p50,
+         jail_black_female_p50, jail_black_male_p50, jail_black_pooled_p50,
+         teenbrth_black_female_p50, 
+         two_par_black_female_p50, two_par_black_male_p50, two_par_black_pooled_p50,
+         kfr_black_female_p50, kfr_black_male_p50, kfr_black_pooled_p50,
+         kir_black_female_p50, kir_black_male_p50, kir_black_pooled_p50) %>% 
+  rename(has_dad_pooled_p50 = has_dad_black_pooled_p50,
+         has_mom_pooled_p50 = has_mom_black_pooled_p50,
+         jail_pooled_p50 = jail_black_pooled_p50,
+         teenbrth_female_p50 = teenbrth_black_female_p50,
+         two_par_pooled_p50 = two_par_black_pooled_p50,
+         kfr_pooled_p50 = kfr_black_pooled_p50,
+         kir_pooled_p50 = kir_black_pooled_p50)
+  
+asian_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_dad_asian_female_p50, has_dad_asian_male_p50, has_dad_asian_pooled_p50,
+         has_mom_asian_female_p50, has_mom_asian_male_p50, has_mom_asian_pooled_p50,
+         jail_asian_female_p50, jail_asian_male_p50, jail_asian_pooled_p50,
+         teenbrth_asian_female_p50, 
+         two_par_asian_female_p50, two_par_asian_male_p50, two_par_asian_pooled_p50,
+         kfr_asian_female_p50, kfr_asian_male_p50, kfr_asian_pooled_p50,
+         kir_asian_female_p50, kir_asian_male_p50, kir_asian_pooled_p50) %>% 
+  rename(has_dad_pooled_p50 = has_dad_asian_pooled_p50,
+         has_mom_pooled_p50 = has_mom_asian_pooled_p50,
+         jail_pooled_p50 = jail_asian_pooled_p50,
+         teenbrth_female_p50 = teenbrth_asian_female_p50,
+         two_par_pooled_p50 = two_par_asian_pooled_p50,
+         kfr_pooled_p50 = kfr_asian_pooled_p50,
+         kir_pooled_p50 = kir_asian_pooled_p50)
+  
+hisp_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_dad_hisp_female_p50, has_dad_hisp_male_p50, has_dad_hisp_pooled_p50,
+         has_mom_hisp_female_p50, has_mom_hisp_male_p50, has_mom_hisp_pooled_p50,
+         jail_hisp_female_p50, jail_hisp_male_p50, jail_hisp_pooled_p50,
+         teenbrth_hisp_female_p50, 
+         two_par_hisp_female_p50, two_par_hisp_male_p50, two_par_hisp_pooled_p50,
+         kfr_hisp_female_p50, kfr_hisp_male_p50, kfr_hisp_pooled_p50,
+         kir_hisp_female_p50, kir_hisp_male_p50, kir_hisp_pooled_p50) %>% 
+  rename(has_dad_pooled_p50 = has_dad_hisp_pooled_p50,
+         has_mom_pooled_p50 = has_mom_hisp_pooled_p50,
+         jail_pooled_p50 = jail_hisp_pooled_p50,
+         teenbrth_female_p50 = teenbrth_hisp_female_p50,
+         two_par_pooled_p50 = two_par_hisp_pooled_p50,
+         kfr_pooled_p50 = kfr_hisp_pooled_p50,
+         kir_pooled_p50 = kir_hisp_pooled_p50)
+  
+natam_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_dad_natam_female_p50, has_dad_natam_male_p50, has_dad_natam_pooled_p50,
+         has_mom_natam_female_p50, has_mom_natam_male_p50, has_mom_natam_pooled_p50,
+         jail_natam_female_p50, jail_natam_male_p50, jail_natam_pooled_p50,
+         teenbrth_natam_female_p50, 
+         two_par_natam_female_p50, two_par_natam_male_p50, two_par_natam_pooled_p50,
+         kfr_natam_female_p50, kfr_natam_male_p50, kfr_natam_pooled_p50,
+         kir_natam_female_p50, kir_natam_male_p50, kir_natam_pooled_p50) %>% 
+  rename(has_dad_pooled_p50 = has_dad_natam_pooled_p50,
+         has_mom_pooled_p50 = has_mom_natam_pooled_p50,
+         jail_pooled_p50 = jail_natam_pooled_p50,
+         teenbrth_female_p50 = teenbrth_natam_female_p50,
+         two_par_pooled_p50 = two_par_natam_pooled_p50,
+         kfr_pooled_p50 = kfr_natam_pooled_p50,
+         kir_pooled_p50 = kir_natam_pooled_p50)
+
+```
+
+
+
+```{r outcome_regressions}
+has_dad_lm <- lm(data = has_dad_data, values_relative_shrink ~ has_dad_white_pooled_p50 + 
+                                                               has_dad_black_pooled_p50  + 
+                                                               has_dad_asian_pooled_p50 + 
+                                                               has_dad_hisp_pooled_p50 + 
+                                                               has_dad_natam_pooled_p50 )
+
+has_mom_lm <- lm(data = has_mom_data, values_relative_shrink ~ has_mom_white_pooled_p50 + 
+                                                               has_mom_black_pooled_p50  + 
+                                                               has_mom_asian_pooled_p50 + 
+                                                               has_mom_hisp_pooled_p50 + 
+                                                               has_mom_natam_pooled_p50)
+
+jail_lm <- lm(data = jail_data, values_relative_shrink ~ jail_white_pooled_p50 + 
+                                                         jail_black_pooled_p50  + 
+                                                         jail_asian_pooled_p50 + 
+                                                         jail_hisp_pooled_p50 + 
+                                                         jail_natam_pooled_p50)
+
+teenbrth_lm <- lm(data = teenbrth_data, values_relative_shrink ~ teenbrth_white_female_p50 + 
+                                                               teenbrth_black_female_p50 + 
+                                                               teenbrth_asian_female_p50 +
+                                                               teenbrth_hisp_female_p50 + 
+                                                               teenbrth_natam_female_p50)
+
+two_par_lm <- lm(data = two_par_data, values_relative_shrink ~ two_par_white_pooled_p50 + 
+                                                               two_par_black_pooled_p50  + 
+                                                               two_par_asian_pooled_p50 + 
+                                                               two_par_hisp_pooled_p50 + 
+                                                               two_par_natam_pooled_p50)
+
+kfr_lm <- lm(data = kfr_data, values_relative_shrink ~ kfr_white_pooled_p50 + 
+                                                       kfr_black_pooled_p50  + 
+                                                       kfr_asian_pooled_p50 + 
+                                                       kfr_hisp_pooled_p50 + 
+                                                       kfr_natam_pooled_p50)
+
+kir_lm <- lm(data = kir_data, values_relative_shrink ~ kir_white_pooled_p50 + 
+                                                       kir_black_pooled_p50  + 
+                                                       kir_asian_pooled_p50 + 
+                                                       kir_hisp_pooled_p50 + 
+                                                       kir_natam_pooled_p50)
+
+```
+
+```{r race_regressions}
+white_lm <- lm(data = white_data, values_relative_shrink ~ has_dad_pooled_p50 + 
+                                                           has_mom_pooled_p50 + 
+                                                           jail_pooled_p50 + 
+                                                           teenbrth_female_p50 + 
+                                                           two_par_pooled_p50 + 
+                                                           kfr_pooled_p50 + 
+                                                           kir_pooled_p50)
+
+black_lm <- lm(data = black_data, values_relative_shrink ~ has_dad_pooled_p50 + 
+                                                           has_mom_pooled_p50 + 
+                                                           jail_pooled_p50 + 
+                                                           teenbrth_female_p50 + 
+                                                           two_par_pooled_p50 + 
+                                                           kfr_pooled_p50 + 
+                                                           kir_pooled_p50)
+
+asian_lm <- lm(data = asian_data, values_relative_shrink ~ has_dad_pooled_p50 + 
+                                                           has_mom_pooled_p50 + 
+                                                           jail_pooled_p50 + 
+                                                           teenbrth_female_p50 + 
+                                                           two_par_pooled_p50 + 
+                                                           kfr_pooled_p50 + 
+                                                           kir_pooled_p50)
+
+hisp_lm <- lm(data = hisp_data, values_relative_shrink ~ has_dad_pooled_p50 + 
+                                                         has_mom_pooled_p50 + 
+                                                         jail_pooled_p50 + 
+                                                         teenbrth_female_p50 + 
+                                                         two_par_pooled_p50 + 
+                                                         kfr_pooled_p50 + 
+                                                         kir_pooled_p50)
+
+natam_lm <- lm(data = natam_data, values_relative_shrink ~ has_dad_pooled_p50 + 
+                                                           has_mom_pooled_p50 + 
+                                                           jail_pooled_p50 + 
+                                                           teenbrth_female_p50 + 
+                                                           two_par_pooled_p50 + 
+                                                           kfr_pooled_p50 + 
+                                                           kir_pooled_p50)
+
+```
+
+```{r graph_regressions}
+
+```
+
+
+
+```{r summary_data}
+summary_data <- raw_data %>% 
+  select(county, countyname, state, cz, cbsa, 
+         values_relative_shrink, values_universal_shrink, values_communal_shrink,
+         has_dad_white_pooled_p50, has_dad_black_pooled_p50, has_dad_asian_pooled_p50, has_dad_hisp_pooled_p50, has_dad_natam_pooled_p50, 
+         has_mom_white_pooled_p50, has_mom_black_pooled_p50, has_mom_asian_pooled_p50, has_mom_hisp_pooled_p50, has_mom_natam_pooled_p50, 
+         jail_white_pooled_p50, jail_black_pooled_p50, jail_asian_pooled_p50, jail_hisp_pooled_p50, jail_natam_pooled_p50,
+         teenbrth_white_female_p50, teenbrth_black_female_p50, teenbrth_asian_female_p50, teenbrth_hisp_female_p50, teenbrth_natam_female_p50,
+         two_par_white_pooled_p50, two_par_black_pooled_p50, two_par_asian_pooled_p50, two_par_hisp_pooled_p50, two_par_natam_pooled_p50, 
+         kfr_white_pooled_p50, kfr_black_pooled_p50, kfr_asian_pooled_p50, kfr_hisp_pooled_p50, kfr_natam_pooled_p50, 
+         kir_white_pooled_p50, kir_black_pooled_p50, kir_asian_pooled_p50, kir_hisp_pooled_p50, kir_natam_pooled_p50) %>%
+  mutate(region = case_when(state %in% c("CT", "MA", "ME", "NH", "NJ", "NY", "PA", "RI", "VT") ~ "Northeast",
+                            state %in% c("AL", "AR", "DC", "DE", "FL", "GA", "KY", "LA", "MD", "MS", "NC", "SC", "TN", "VA", "WV") ~ "Southeast",
+                            state %in% c("IL", "IN", "IA", "KS", "MI", "MN", "MO", "NE", "ND", "OH", "SD", "WI") ~ "Midwest",
+                            state %in% c("AZ", "NM", "OK", "TX") ~ "Southwest",
+                            state %in% c("CO", "ID", "MT", "NV", "UT", "WY") ~ "Rocky Mountains",
+                            state %in% c("CA", "OR", "WA") ~ "Pacific",
+                            state %in% c("AK", "HI") ~ "Non-Contiguous")) %>% 
+  mutate(region = fct_relevel(region,
+                              "Northeast",
+                              "Southeast",
+                              "Midwest",
+                              "Southwest",
+                              "Rocky Mountains",
+                              "Pacific",
+                              "Non-Contiguous"))
+```
+
+```{r means_data}
+moral_values_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(`Relative Morals` = round(mean(values_relative_shrink, na.rm = TRUE), 2),
+            `Universal Morals` = round(mean(values_universal_shrink, na.rm = TRUE), 2),
+            `Communal Morals` = round(mean(values_communal_shrink, na.rm = TRUE), 2))
+
+has_dad_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(White = paste(round(100 * mean(has_dad_white_pooled_p50, na.rm = TRUE)), "%"),
+            Black = paste(round(100 * mean(has_dad_black_pooled_p50, na.rm = TRUE)), "%"),
+            Asian = paste(round(100 * mean(has_dad_asian_pooled_p50, na.rm = TRUE)), "%"),
+            Hispanic = paste(round(100 * mean(has_dad_hisp_pooled_p50, na.rm = TRUE)), "%"),
+            `Native American` = paste(round(100 * mean(has_dad_natam_pooled_p50, na.rm = TRUE)), "%"))
+
+has_mom_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(White = paste(round(100 * mean(has_mom_white_pooled_p50, na.rm = TRUE)), "%"),
+            Black = paste(round(100 * mean(has_mom_black_pooled_p50, na.rm = TRUE)), "%"),
+            Asian = paste(round(100 * mean(has_mom_asian_pooled_p50, na.rm = TRUE)), "%"),
+            Hispanic = paste(round(100 * mean(has_mom_hisp_pooled_p50, na.rm = TRUE)), "%"),
+            `Native American` = paste(round(100 * mean(has_mom_natam_pooled_p50, na.rm = TRUE)), "%"))
+
+jail_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(White = paste(round(100 * mean(jail_white_pooled_p50, na.rm = TRUE)), "%"),
+            Black = paste(round(100 * mean(jail_black_pooled_p50, na.rm = TRUE)), "%"),
+            Asian = paste(round(100 * mean(jail_asian_pooled_p50, na.rm = TRUE)), "%"),
+            Hispanic = paste(round(100 * mean(jail_hisp_pooled_p50, na.rm = TRUE)), "%"),
+            `Native American` = paste(round(100 * mean(jail_natam_pooled_p50, na.rm = TRUE)), "%"))
+
+teenbrth_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(White = paste(round(100 * mean(teenbrth_white_female_p50, na.rm = TRUE)), "%"),
+            Black = paste(round(100 * mean(teenbrth_black_female_p50, na.rm = TRUE)), "%"),
+            Asian = paste(round(100 * mean(teenbrth_asian_female_p50, na.rm = TRUE)), "%"),
+            Hispanic = paste(round(100 * mean(teenbrth_hisp_female_p50, na.rm = TRUE)), "%"),
+            `Native American` = paste(round(100 * mean(teenbrth_natam_female_p50, na.rm = TRUE)), "%"))
+
+two_par_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(White = paste(round(100 * mean(two_par_white_pooled_p50, na.rm = TRUE)), "%"),
+            Black = paste(round(100 * mean(two_par_black_pooled_p50, na.rm = TRUE)), "%"),
+            Asian = paste(round(100 * mean(two_par_asian_pooled_p50, na.rm = TRUE)), "%"),
+            Hispanic = paste(round(100 * mean(two_par_hisp_pooled_p50, na.rm = TRUE)), "%"),
+            `Native American` = paste(round(100 * mean(two_par_natam_pooled_p50, na.rm = TRUE)), "%"))
+
+kfr_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(White = paste(round(100 * mean(kfr_white_pooled_p50, na.rm = TRUE)), "%"),
+            Black = paste(round(100 * mean(kfr_black_pooled_p50, na.rm = TRUE)), "%"),
+            Asian = paste(round(100 * mean(kfr_asian_pooled_p50, na.rm = TRUE)), "%"),
+            Hispanic = paste(round(100 * mean(kfr_hisp_pooled_p50, na.rm = TRUE)), "%"),
+            `Native American` = paste(round(100 * mean(kfr_natam_pooled_p50, na.rm = TRUE)), "%"))
+
+kir_means <- summary_data %>% 
+  group_by(region) %>% 
+  rename(Region = region) %>% 
+  summarize(White = paste(round(100 * mean(kir_white_pooled_p50, na.rm = TRUE)), "%"),
+            Black = paste(round(100 * mean(kir_black_pooled_p50, na.rm = TRUE)), "%"),
+            Asian = paste(round(100 * mean(kir_asian_pooled_p50, na.rm = TRUE)), "%"),
+            Hispanic = paste(round(100 * mean(kir_hisp_pooled_p50, na.rm = TRUE)), "%"),
+            `Native American` = paste(round(100 * mean(kir_natam_pooled_p50, na.rm = TRUE)), "%"))
+  
+```
+
+```{r covariates_data}
+covariates_summary <- covariates_data %>%
+  left_join(state_dictionary, by = "county") %>% 
+  select(-state.x) %>% 
+  rename(state = state.y) %>% 
+  mutate(region = case_when(state %in% c("CT", "MA", "ME", "NH", "NJ", "NY", "PA", "RI", "VT") ~ "Northeast",
+                            state %in% c("AL", "AR", "DC", "DE", "FL", "GA", "KY", "LA", "MD", "MS", "NC", "SC", "TN", "VA", "WV") ~ "Southeast",
+                            state %in% c("IL", "IN", "IA", "KS", "MI", "MN", "MO", "NE", "ND", "OH", "SD", "WI") ~ "Midwest",
+                            state %in% c("AZ", "NM", "OK", "TX") ~ "Southwest",
+                            state %in% c("CO", "ID", "MT", "NV", "UT", "WY") ~ "Rocky Mountains",
+                            state %in% c("CA", "OR", "WA") ~ "Pacific",
+                            state %in% c("AK", "HI") ~ "Non-Contiguous")) %>% 
+  filter(!is.na(state)) %>% 
+  mutate(region = fct_relevel(region,
+                              "Northeast",
+                              "Southeast",
+                              "Midwest",
+                              "Southwest",
+                              "Rocky Mountains",
+                              "Pacific",
+                              "Non-Contiguous"))
+```
+
+```{r means_covariates_data}
+inc_covariates_means <- covariates_summary %>% 
+  select(region, hhinc_mean2000, emp2000, med_hhinc1990, med_hhinc2016) %>% 
+  group_by(region) %>% 
+  summarize(`Mean H.H. Inc. 2000` = dollar(round(mean(hhinc_mean2000, na.rm = TRUE))),
+            `Median H.H. Inc. 1990` = dollar(round(mean(med_hhinc1990, na.rm = TRUE))),
+            `Median H.H. Inc. 2016` = dollar(round(mean(med_hhinc2016, na.rm = TRUE))),
+            `Emp. Rate 2000` = paste(round(100 * mean(emp2000, na.rm = TRUE)), "%", sep = "")) %>% 
+  rename(Region = region)
+
+educ_covariates_means <- covariates_summary %>% 
+  select(region, frac_coll_plus2000, frac_coll_plus2010, gsmn_math_g3_2013) %>% 
+  group_by(region) %>% 
+  summarize(`Ptg. College or More 2000` = paste(round(100 * mean(frac_coll_plus2000, na.rm = TRUE)), "%", sep = ""),
+            `Ptg. College or More 2010` = paste(round(100 * mean(frac_coll_plus2010, na.rm = TRUE)), "%", sep = ""),
+            `Mean Math Test Scores 2013` = round(mean(gsmn_math_g3_2013, na.rm = TRUE), digits = 2)) %>% 
+  rename(Region = region)
+  
+```
+
+
+
+# Research Premise
+
+I am interested in exploring the relationship between various measures of familial structure and relative moral values as discussed by Prof. Benjamin Enke during week 4's lecture "The Political Economy of Moral Universalism." I found the data to be incredibly interesting and see it having a large range of applicability to political, financial and behavioral economics, and thus I am interested in researching the effects of familial structure on moral values and whether or not the effects these familial structure characteristics have on an individual's income are merely proxies for effects coming from moral values. 
+
+# Introduction
+
+Much of the research in economics relating to moral values stems from Jonathan Haidt's Moral Foundations Theory, a theory based in pluralism suggesting that there are five foundations of morality: care, fairness/proportionality, loyalty/ingroup, authority/respect, and sanctity/purity.[^1] These moral foundations have been shown to correlate with political and religious ideology, an idea strengthened by Benjamin Enke's articles *Moral Values and Voting*[^2] and *Moral Universalism and the Structure of Ideology*[^3], respectively.
+
+Moving on to the second important part of the research, the link between familial structure and various measures of social outcomes has been established in many studies. Researchers have found links between it and educational achievments[^4], educational attainment[^5], likelihood of falling into poverty[^6], and compulsive consumption[^7].
+
+Both moral values and familial structures are intricately linked to socioeconomic outcomes, and given this link I feel that they must be linked to each other as well. The goal of this paper will be to explore and shed light onto the effects familial structure has on moral values, and inderectly the effect it has on outcomes via values.
+
+# Data
+
+The data for this research comes from two major sources: Raj Chetty's *Opportunity Insights*[^8] project and Benjamin Enke's moral values data from *Moral Values and Voting*. 
+
+Raj Chetty and the Opportunity Insights team have made their data available on the project's website so that people may "analyze social mobility and a variety of other outcomes from life expectancy to patent rates by neighborhood, college, parental income level, and racial background." I began with data mapping all measured outcomes by race and gender at the county level and filtered this data to only include patrticularly pertinent variables---fraction of children who have a male claimer in the year they are linked to parents, fraction of children who have a female claimer in the year they are linked to parents, fraction incarcerated on April 1st, 2010, fraction of women who grew up in the given tract who ever claimed a child who was born when they were between the ages of 13 and 19 as a dependent at any point, fraction of children claimed by two people in the year they are linked to parents, mean percentile rank (relative to other children born in the same year) in the national distribution of household income, and mean percentile rank (relative to other children born in the same year) in the national distribution of individual income.
+
+For each variable listed above, I have obtained values for each race/gender combination as well as values for each race including both genders at the 1st, 50th, and 100th percentiles. This data is collected and cleaned by the Opportunity Insights team, so I did not perform any additional cleaning. Also from the Opportunity Insights page I downloaded data on various covariates to be used to discover underlying fixed effects/variables that may be contributing to omitted variable bias to be used in future regressions. Table 1[^9] displays means for each of the income-related covariates in each of the seven regions of the U.S. (Northeast, "Southeast", "Midwest", "Southwest", "Rocky Mountains", "Pacific", and "Non-Contiguous"), and Table 2 does so for the education-related ones.
+
+```{r independent_variables_summary, include=FALSE, results='asis'}
+stargazer(has_dad_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Percentage of Population by Race per Region with Male Claimer")
+
+stargazer(has_mom_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Percentage of Population by Race per Region with Female Claimer")
+
+stargazer(jail_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Percentage of Population by Race per Region Incarcerated on April 1st, 2010")
+
+stargazer(teenbrth_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Percentage of Females by Race per Region who Claimed a Child while between 13-19")
+
+stargazer(two_par_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Percentage of Population by Race per Region Claimed by Two Parents")
+
+stargazer(kfr_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Mean Percentile Rank in the National Distribution of Household Income")
+
+stargazer(kir_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Mean Percentile Rank in the National Distribution of Individual Income")
+```
+
+```{r inc_covariates_summary, results='asis'}
+stargazer(inc_covariates_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Means by Region for Income-Related Covariates", 
+          notes = "\\parbox[t]{16cm}{The Opporunity Insights Data contained information regarding 18 covariates to be used to account for state and area fixed effects as well as potential lurking variables causing omitted variable bias which may affect the accuracy of the regressions. For region, 1 corresponds to \"Northeast\" (containing CT, MA, ME, NH, NJ, NY, PA, RI, and VT), 2 to \"Southeast\" (containing AL, AR, DC, DE, FL, GA, KY, LA, MD, MS, NC, SC, TN, VA, and WV), 3 to \"Midwest\" (containing IL, IN, IA, KS, MI, MN, MO, NE, ND, OH, SD, and WI), 4 to \"Southwest\" (containing AZ, NM, OK, and TX), 5 to \"Rocky Mountains\" (containing CO, ID, MT, NV, UT, and WY), 6 to \"Pacific\" (containing CA, OR, and WA), and 7 to \"Non-Contiguous\" (containing AK and HI). Mean H.H. Inc. 2000 is the mean household income in dollars calculated from the 2000 Decennial Census; Median H.H. Inc. 1990 is the median household income in dollars calculated from the 1990 Census; Median H.H. Inc. 2016 is the median household income in dollars calculated from the 2012-2016 American Community Survey; and Emp. Rate 2000 is the sum of employed females and employed males divided by the total population 16 years and over calculated from the 2000 Decennial Census.}", 
+          notes.append = TRUE)
+
+```
+
+```{r educ_covariates_summary, results='asis'}
+stargazer(educ_covariates_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Means by Region for Education-Related Covariates", 
+          notes = "\\parbox[t]{16cm}{The Opporunity Insights Data contained information regarding 18 covariates to be used to account for state and area fixed effects as well as potential lurking variables causing omitted variable bias which may affect the accuracy of the regressions. For region, 1 corresponds to \"Northeast\" (containing CT, MA, ME, NH, NJ, NY, PA, RI, and VT), 2 to \"Southeast\" (containing AL, AR, DC, DE, FL, GA, KY, LA, MD, MS, NC, SC, TN, VA, and WV), 3 to \"Midwest\" (containing IL, IN, IA, KS, MI, MN, MO, NE, ND, OH, SD, and WI), 4 to \"Southwest\" (containing AZ, NM, OK, and TX), 5 to \"Rocky Mountains\" (containing CO, ID, MT, NV, UT, and WY), 6 to \"Pacific\" (containing CA, OR, and WA), and 7 to \"Non-Contiguous\" (containing AK and HI). Ptg. College or More 2000 is the number of people aged 25 or older who have a bachelor's degree, master's degree, professional school degree, or doctorate degree, divided by the total number of people aged 25 or older in a tract calculated from the 2000 Census; Ptg. College or More 2010 is the same thing calculated using the 2006-2010 ACS; and Mean Math Test Scores 2013 is the mean 3rd grade math test scores in 2013 obtained from the Stanford Education Data Archive and measured at the district level.}", 
+          notes.append = TRUE)
+```
+
+This data was collected from a wide variety of government sources includng census and BLS data, suggesting that biases within the data are not an issue. There is, however, a small amount of noise added to the estimates by the Opportunity Insights team (<10% of the standard error) in orer to protect the privacy of respondents.
+
+The data on moral values coming from Prof. Enke is also organized down to the county level. It is drawn from Jonathan Haidt's "Moral Foundations Questionnaire." It contains information on the relative importance of universal vs. communal values, absolute importance of universal values, and communal importance of universal values. Universal values are not context specific and reflect more consequentialist moral standpoints---they include considerations of rights, justice, impartial fairness, and avoidance of externalities---and communal values are values that can change dependent on situation and are relationship-/group-specific and reflect more deontological moral standpoints---they include considerations of loyalty, betrayal, obedience, and respect. Relative importance is the difference between a given county's absolute communal and absolute universal importances. Table 3 provides means for each of these variables for each of the aforementioned seven regions of the U.S. in which we can see that regions are relatively evenly split on whether they place higher importance in universal or communal morals.
+
+```{r moral_values_summary, results='asis'}
+stargazer(moral_values_means,
+          summary = FALSE,
+          header = FALSE,
+          rownames = FALSE,
+          title = "Means by Region for Moral Values Variables", 
+          notes = "\\parbox[t]{11cm}{The Moral Values Data contained information regarding 3 categories of moral values: relative importance of universal vs. communal values (calculated by subtracting importance of universal values from importance of communal values), absolute importance of universal values (implicit from the Haidt survey), and absolute importance of communal values (also implicit from the haidt survey). For region, 1 corresponds to \"Northeast\" (containing CT, MA, ME, NH, NJ, NY, PA, RI, and VT), 2 to \"Southeast\" (containing AL, AR, DC, DE, FL, GA, KY, LA, MD, MS, NC, SC, TN, VA, and WV), 3 to \"Midwest\" (containing IL, IN, IA, KS, MI, MN, MO, NE, ND, OH, SD, and WI), 4 to \"Southwest\" (containing AZ, NM, OK, and TX), 5 to \"Rocky Mountains\" (containing CO, ID, MT, NV, UT, and WY), 6 to \"Pacific\" (containing CA, OR, and WA), and 7 to \"Non-Contiguous\" (containing AK and HI).}", 
+          notes.append = TRUE)
+
+```
+
+Increasing the specificity from the region estimates, we can look at state-specific means. We can see a wide variety in the values for relative importance of universal vs. communal values across states, as seen in Figure 1. If we wanted to increase specificity even more, we would see that, as shown by Prof. Enke displays in his paper *Moral Values and Voting*, this variety exists across counties within states as well. These counties themselves vary in relative percentages of races, of children growing up under different family structures, and of a myriad of different factors which could be contributing to this variation in moral values.
+
+```{r moral_values_heatmap}
+moral_values_heatmap <- summary_data %>% 
+  group_by(state) %>% 
+  summarize(relative_mean = mean(values_relative_shrink, na.rm = TRUE),
+            universal_mean = mean(values_universal_shrink, na.rm = TRUE),
+            communal_mean = mean(values_communal_shrink, na.rm = TRUE))
+
+plot_usmap(data = moral_values_heatmap, values = "relative_mean", lines = "black") + 
+  scale_fill_continuous(low = "lightgoldenrod1", high = "indianred3", name = "Relative Importance of \nUniversal vs. Communal Values") +
+  theme(legend.position = "right",
+        text = element_text(size = 8, family = "Times")) + 
+  labs(title = "Figure 1: Heatmap of Difference between Communal and Universal Values in the U.S.A.")
+
+```
+
+This data was collected by Jonathan Haidt from his "Moral Foundations Questionnaire"[^10]: an online, elective quiz which reports individuals' scores on the five foundations of Moral Foundations Theory but also records demographic information and relative importance of universal and communal values to perform data analysis. Because of Haidt's relative popularity and fame, the dataset is very expansive, but the data is likely slightly skewed towards younger and more educated people.
+
+
+# Methods
+
+I plan on exploring the relationship between the dependent and independent variables by expanding upon the regressions performed to obtain the preliminary results discussed in the next section. Much of the analysis I have done so far is on the effect the prevalence each independent variable has within each individual race has on relative importance of communal values over universal values. 
+
+Going forward, I will be creating multipe visualizations using both traditional x- and y-variable graphs as well as PCA analysis to look for relationships to further analyze in regression analysis. I will then use the inferences I draw from this exploratory analysis perform regressions using quadratic, cubic, and polynomial regressions as well as fixed effects regression techniques.
+
+So far, each regression is a MLS regression following the formula:
+
+$$Y_i = \beta_0 + \beta_1X_{1i} + ... + \beta_nX_{ni} + \epsilon_i$$
+
+where $\beta_0$ is the constant intercept, $\beta_1$ through $\beta_n$ are the slope coefficients for the various independent variables, and $\epsilon_i$ is the error term for a given observation. 
+
+```{r race_regression, results='asis'}
+stargazer(white_lm, 
+          black_lm, 
+          asian_lm,
+          hisp_lm,
+          natam_lm,
+          type = "latex",
+          title = "Effects of Independent Variables on Relative Importance of Universal vs. Communal Values by Race",
+          column.labels = c("White", "Black", "Asian", "Hispanic", "Native American"),
+          dep.var.labels = c("Relative Importance of Universal vs. Communal Values"),
+          covariate.labels = c("Has Dad", "Has Mom", "Incarceration", "Teen Birth", "Two Parents", "House. Inc.", 
+                               "Indiv. Inc."),
+          header = FALSE,
+          omit.stat = c("f", "ser"), 
+          column.sep.width = "23pt",
+          notes = "\\parbox[t]{14cm}{The data for this regression comes from two sources: Raj Chetty's Opportunity Insights All Outcomes data and Benjamin Enke's Moral Values data. The dependent variable is calculated from the Moral Values data by subtracting the universal values score from the communal values score. The independent variables all come from the Opportunity Insights data. \"Has Dad\" represents the fraction of children at the 50th percentile for a given race with a male claimer in the year they are linked to a parents. \"Has Mom\" represents the fraction of children at the 50th percentile for a given race with a female claimer in the year they are linked to a parents. \"Incarceration\" represents the fraction of the population at the 50th percentile for a given race incarcerated on April 1st, 2010. \"Teen Birth\" represents the fraction of women at the 50th percentile for a given race who ever claimed a child who was born when they were between the ages of 13 and 19 as a dependent at any point. \"Two Parents\" represents the fraction of children at the 50th percentile for a given race who were claimed by two people in the year they are linked to parents. \"House. Inc.\" represents the mean percentile rank at the 50th percentile for a given race  in the national distribution of household income (i.e. own earnings and spouse’s earnings) measured as mean earnings in 2014-2015 for the baseline sample. \"Indiv. Inc.\" represents the mean percentile rank at the 50th percentile for a given race in the national distribution of individual income (i.e. just own earnings) measured as mean earnings in 2014-2015 for the baseline sample.}", 
+          notes.append = TRUE)
+```
+
+# Preliminary Results
+
+Looking at Table 4 and based on preliminary regressions, the strongest correlates with relative importance of universal vs. communal values are household income, individual income, and teen birth. There were comparatively high numbers for incarceration rates in white citizens, has dad for black citizens, and two parents for Native American citizens. Even though the coefficients for many of the variables were statistically significant, the R^2 and Adjusted R^2 for each of the regressions is extremely low. Further, without any controls, there is a large risk of omitted variable bias affecting the estimates returned by the regression.
+
+# Other Options
+
+Given the breadth of the data available on the Opportunity Insights website, there are a variety of other variables for which I can explore its relationship with the moral values data. Some I am considering looking into if including controls eliminates the effects of the familial structure variables include kfr and kir---mean percentile rank (relative to other children born in the same year) in the national distribution of household incomeand mean percentile rank (relative to other children born in the same year) in the national distribution of individual income, respectively. 
+
+\pagebreak
+
+# Bibliography
+
+[^1]: @H13
+[^2]: @E18
+[^3]: @E18_2
+[^4]: @A91
+[^5]: @S99
+[^6]: @M85
+[^7]: @R97
+[^8]: @R19
+[^9]: Tables created using R package stargazer, @H18
+[^10]: http://yourmorals.org/haidtlab/mft/index.php?t=questionnaires
